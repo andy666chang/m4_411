@@ -1,0 +1,30 @@
+manifest:
+  version: "0.12"
+
+  defaults:
+    remote: zephyrproject-rtos
+
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr-rtos
+      repo-path: zephyr.git
+      path: zephyr-rtos
+      remote: zephyrproject-rtos
+      revision: v3.7.2
+      clone-depth: 1
+      import:
+        name-allowlist:
+          - cmsis
+          - hal_st
+          - hal_stm32
+
+    - name: app
+      path: modules/app
+      groups:
+        - local_app
+
+  self:
+    path: tool
