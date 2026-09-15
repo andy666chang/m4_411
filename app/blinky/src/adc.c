@@ -3,13 +3,20 @@
 #include <zephyr/arch/cpu.h>
 #include <zephyr/irq.h>
 #include <zephyr/kernel.h>
+#include <zephyr/init.h>
+
+#include "adc.h"
 
 /* DMA Buffer 設定: 2KB 大小，存放 1024 個 16-bit (Half-Word) 採樣點 */
-#define DMA_BUF_SIZE_BYTES 2048
+#define DMA_BUF_SIZE_BYTES 4096
 #define DMA_BUF_SAMPLES (DMA_BUF_SIZE_BYTES / sizeof(uint16_t)) // 1024 samples
+#define DMA_HALF_SAMPLES (DMA_BUF_SAMPLES / 2)
 
 /* 宣告 DMA 雙暫存器/循環緩衝區 */
 static uint16_t adc_dma_buffer[DMA_BUF_SAMPLES] __aligned(4);
+
+/* Queue for pointer + length pair */
+K_MSGQ_DEFINE(adc_msgq, sizeof(struct adc_dma_chunk), 4, 4);
 
 /**
  * @brief DMA2 Stream 0 中斷服務程式 (ISR)
@@ -18,20 +25,22 @@ static uint16_t adc_dma_buffer[DMA_BUF_SAMPLES] __aligned(4);
 static void dma2_stream0_isr(const void *arg) {
     ARG_UNUSED(arg);
 
-    // 檢查 Half-Transfer 中斷標誌 (前 1KB 資料填充完畢)
-    if (DMA2->LISR & DMA_LISR_HTIF0) {
-        DMA2->LIFCR = DMA_LIFCR_CHTIF0; // 清除 HTIF0 標誌
+    struct adc_dma_chunk msg = {0};
 
-        // TODO: 處理前半段資料 adc_dma_buffer ~ adc_dma_buffer[22]
-        printf("a\n");
+    if (DMA2->LISR & DMA_LISR_HTIF0) {
+        DMA2->LIFCR = DMA_LIFCR_CHTIF0;
+
+        msg.buffer = adc_dma_buffer;
+        msg.length = DMA_HALF_SAMPLES;
+        k_msgq_put(&adc_msgq, &msg, K_NO_WAIT);
     }
 
-    // 檢查 Transfer-Complete 中斷標誌 (後 1KB 資料填充完畢)
     if (DMA2->LISR & DMA_LISR_TCIF0) {
-        DMA2->LIFCR = DMA_LIFCR_CTCIF0; // 清除 TCIF0 標誌
+        DMA2->LIFCR = DMA_LIFCR_CTCIF0;
 
-        // TODO: 處理後半段資料 adc_dma_buffer[23] ~ adc_dma_buffer[24]
-        printf("b\n");
+        msg.buffer = &adc_dma_buffer[DMA_HALF_SAMPLES];
+        msg.length = DMA_HALF_SAMPLES;
+        k_msgq_put(&adc_msgq, &msg, K_NO_WAIT);
     }
 }
 
@@ -43,14 +52,9 @@ static void tim3_isr(const void *arg) {
     ARG_UNUSED(arg);
 
     if (TIM3->SR & TIM_SR_UIF) {
-        TIM3->SR = ~TIM_SR_UIF; // 清除 Update Interrupt 標誌
-
-        // TODO: 可在此放置 1kHz 週期性任務
+        TIM3->SR = ~TIM_SR_UIF;
     }
 }
-
-
-#include <zephyr/init.h>
 
 /**
  * @brief 初始化 ADC1, TIM3, DMA2 及 GPIOA (PA0)
@@ -133,7 +137,7 @@ static int adc_custom_init(void) {
     TIM3->CR2 &= ~TIM_CR2_MMS;
     TIM3->CR2 |=
         (0x2 << TIM_CR2_MMS_Pos); // MMS = 010b (Update Event 作為 TRGO) [7, 8]
-    TIM3->DIER |= TIM_DIER_UIE;   // 啟用 Update 中斷 [50, 51]
+    // TIM3->DIER |= TIM_DIER_UIE;   // 啟用 Update 中斷 [50, 51]
 
     /* =========================================================================
      * 6. 在 Zephyr 系統中註冊與開啟 NVIC 中斷
@@ -144,8 +148,8 @@ static int adc_custom_init(void) {
     irq_enable(DMA2_Stream0_IRQn);
 
     // 註冊 TIM3 中斷 (IRQ 29) [53]
-    IRQ_CONNECT(TIM3_IRQn, 2, tim3_isr, NULL, 0);
-    irq_enable(TIM3_IRQn);
+    // IRQ_CONNECT(TIM3_IRQn, 2, tim3_isr, NULL, 0);
+    // irq_enable(TIM3_IRQn);
 
     /* 啟動 TIM3 開始計數並輸出 TRGO 觸發 ADC */
     TIM3->CR1 |= TIM_CR1_CEN; // [ 54, 55 ]
