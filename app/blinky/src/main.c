@@ -41,6 +41,21 @@ int main(void)
         return ret;
     }
 
+    LOG_INF("Waiting for host READY signal");
+    while (1) {
+        k_msgq_purge(&adc_msgq);
+        ret = cdc_uart_wait_host_ready(100);
+        if (ret == 0) {
+            break;
+        }
+        if (ret != -EAGAIN) {
+            printk("Waiting for host READY failed: %d\n", ret);
+            return ret;
+        }
+    }
+    k_msgq_purge(&adc_msgq);
+    LOG_INF("Host READY received; starting ADC streaming");
+
     while (1) {
         struct adc_dma_chunk msg;
 

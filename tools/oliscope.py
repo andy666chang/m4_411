@@ -11,9 +11,12 @@ MAX_POINTS = 5000  # 畫面上最多顯示幾個取樣點
 SAMPLE_SIZE_BYTES = 2
 PACKET_START = b"SERR"
 PACKET_END = b"IALL"
+HOST_READY_BYTE = b"\xA5"
 
 # 初始化序列埠
 ser = serial.Serial(PORT, BAUDRATE, timeout=0.01)
+ser.reset_input_buffer()
+ser.reset_output_buffer()
 
 # 初始化畫布
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -21,6 +24,7 @@ lines = []
 x_data = np.arange(MAX_POINTS)
 y_data = []  # 動態儲存各通道資料
 rx_buffer = bytearray()
+host_ready_sent = False
 
 
 def parse_packet(ser_port):
@@ -77,6 +81,13 @@ def parse_packet(ser_port):
 
 def init_plot():
   """初始化圖表"""
+  global host_ready_sent
+
+  if not host_ready_sent:
+    ser.write(HOST_READY_BYTE)
+    ser.flush()
+    host_ready_sent = True
+
   ax.set_xlim(0, MAX_POINTS)
   ax.set_ylim(0, 4095)  # STM32 ADC is configured for 12-bit unsigned samples.
   ax.set_title("Virtual COM Port Oscilloscope")
