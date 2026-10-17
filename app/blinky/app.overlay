@@ -1,6 +1,13 @@
 
-/ {
+#include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
 
+/ {
+    gpio_init_cfg: gpio_init_cfg {
+        compatible = "vnd,pinctrl-device";
+        pinctrl-0 = <&led_pc13>;
+        pinctrl-names = "default";
+        status = "okay";
+    };
 };
 
 &dma2 {
@@ -9,4 +16,23 @@
     // Remove the interrupt for DMA2 Stream 0 (0x38 ADC1 DMA) for custom handling in adc.c
     interrupts = < 0x39 0x0 0x3a 0x0 0x3b 0x0 0x3c 0x0 0x44 0x0 0x45 0x0 0x46 0x0 >;
     status = "okay";
+};
+
+&pinctrl {
+    /omit-if-no-ref/ led_pc13: led_pc13 {
+		pinmux = <STM32_PINMUX('C', 13, GPIO)>;
+        // bias-disable;
+        // drive-push-pull;
+        output-high;
+        slew-rate = "very-high-speed";
+	};
+};
+
+&zephyr_udc0 {
+    status = "okay";
+
+    /* 建立獨立的虛擬序列埠節點 */
+    my_cdc_uart: my_cdc_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
 };

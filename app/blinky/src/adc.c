@@ -7,11 +7,6 @@
 
 #include "adc.h"
 
-/* DMA Buffer 設定: 2KB 大小，存放 1024 個 16-bit (Half-Word) 採樣點 */
-#define DMA_BUF_SIZE_BYTES 4096
-#define DMA_BUF_SAMPLES (DMA_BUF_SIZE_BYTES / sizeof(uint16_t)) // 1024 samples
-#define DMA_HALF_SAMPLES (DMA_BUF_SAMPLES / 2)
-
 /* 宣告 DMA 雙暫存器/循環緩衝區 */
 static uint16_t adc_dma_buffer[DMA_BUF_SAMPLES] __aligned(4);
 
@@ -20,7 +15,7 @@ K_MSGQ_DEFINE(adc_msgq, sizeof(struct adc_dma_chunk), 4, 4);
 
 /**
  * @brief DMA2 Stream 0 中斷服務程式 (ISR)
- * 當 DMA 搬移滿一半 (1KB / 512 samples) 或全滿 (2KB / 1024 samples) 時觸發
+ * 當 DMA 搬移滿一半 (1000 samples) 或全滿 (2000 samples) 時觸發
  */
 static void dma2_stream0_isr(const void *arg) {
     ARG_UNUSED(arg);
@@ -90,7 +85,7 @@ static int adc_custom_init(void) {
         (uint32_t) & (ADC1->DR); // 週邊目標位址：ADC1 Data Register [31]
     DMA2_Stream0->M0AR =
         (uint32_t)adc_dma_buffer; // 記憶體目標位址：RAM Buffer [32]
-    DMA2_Stream0->NDTR = DMA_BUF_SAMPLES; // 傳輸總筆數：1024 筆 Half-Word [33]
+    DMA2_Stream0->NDTR = DMA_BUF_SAMPLES; // 傳輸總筆數：2000 筆 Half-Word [33]
 
     DMA2_Stream0->CR =
         (0 << DMA_SxCR_CHSEL_Pos) | // Channel 0 [14, 34]
