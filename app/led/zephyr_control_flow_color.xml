@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmfxml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="xmlDefinition.xsd">
+
+    <!-- 1. 狀態機定義 -->
+    <stateProvider id="org.zephyr.thread.state" version="2">
+        <head>
+            <label value="Zephyr Thread State" />
+        </head>
+
+        <!-- 執行緒切入 (thread_switched_in) -->
+        <eventHandler eventName="thread_switched_in">
+            <!-- 更新個別執行緒軌道：狀態值設為該執行緒名稱 -->
+            <stateChange>
+                <stateAttribute type="constant" value="Threads" />
+                <stateAttribute type="eventField" value="name" />
+                <stateValue type="eventField" value="name" />
+            </stateChange>
+
+            <!-- 更新 CPU 0 軌道：單核心永遠只會執行最新切入的執行緒 -->
+            <stateChange>
+                <stateAttribute type="constant" value="CPUs" />
+                <stateAttribute type="constant" value="CPU 0" />
+                <stateValue type="eventField" value="name" />
+            </stateChange>
+        </eventHandler>
+
+        <!-- 執行緒切出 (thread_switched_out) -->
+        <eventHandler eventName="thread_switched_out">
+            <stateChange>
+                <stateAttribute type="constant" value="Threads" />
+                <stateAttribute type="eventField" value="name" />
+                <stateValue type="null" />
+            </stateChange>
+        </eventHandler>
+    </stateProvider>
+
+    <!-- 2. 時間軸甘特圖視圖與色彩定義 -->
+    <timeGraphView id="org.zephyr.thread.view">
+        <head>
+            <analysis id="org.zephyr.thread.state" />
+            <label value="Zephyr Control Flow" />
+        </head>
+
+        <!-- 自訂色彩對照表 (HEX 色碼) -->
+        <definedValue name="Idle Task" value="idle" color="#BDBDBD" />
+        <definedValue name="Tracing Thread" value="tracing_thread" color="#AB47BC" />
+        <definedValue name="USB Work Queue" value="usbworkq" color="#2196F3" />
+        <definedValue name="App Thread (unknown)" value="unknown" color="#4CAF50" />
+
+        <!-- 優先展示 CPU 0 軌道 -->
+        <entry path="CPUs/*">
+            <display type="self" />
+        </entry>
+
+        <!-- 展開各個別執行緒軌道 -->
+        <entry path="Threads/*">
+            <display type="self" />
+        </entry>
+    </timeGraphView>
+</tmfxml>

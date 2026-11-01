@@ -1,0 +1,33 @@
+
+#include <zephyr/dt-bindings/pinctrl/stm32-pinctrl.h>
+
+/ {
+    chosen {
+        zephyr,tracing-uart = &my_cdc_uart;
+	};
+
+    gpio_init_cfg: gpio_init_cfg {
+        compatible = "vnd,pinctrl-device";
+        pinctrl-0 = <&led_pc13>;
+        pinctrl-names = "default";
+        status = "okay";
+    };
+};
+
+&pinctrl {
+    /omit-if-no-ref/ led_pc13: led_pc13 {
+		pinmux = <STM32_PINMUX('C', 13, GPIO)>;
+        // bias-disable;
+        // drive-push-pull;
+        output-high;
+        slew-rate = "very-high-speed";
+	};
+};
+
+&zephyr_udc0 {
+    status = "okay";
+
+    my_cdc_uart: my_cdc_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
