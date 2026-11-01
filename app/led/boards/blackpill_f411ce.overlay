@@ -3,8 +3,8 @@
 
 / {
     chosen {
-        zephyr,tracing-uart = &my_cdc_uart;
-	};
+        /delete-property/ zephyr,shell-uart;
+    };
 
     gpio_init_cfg: gpio_init_cfg {
         compatible = "vnd,pinctrl-device";
@@ -27,7 +27,7 @@
 &zephyr_udc0 {
     status = "okay";
 
-    my_cdc_uart: my_cdc_uart {
-        compatible = "zephyr,cdc-acm-uart";
-    };
+    // my_cdc_uart: my_cdc_uart {
+    //     compatible = "zephyr,cdc-acm-uart";
+    // };
 };
