@@ -43,10 +43,10 @@
         </head>
 
         <!-- 自訂色彩對照表 (HEX 色碼) -->
-        <definedValue name="Idle Task" value="idle" color="#BDBDBD" />
+        <!-- <definedValue name="Idle Task" value="idle" color="#BDBDBD" />
         <definedValue name="Tracing Thread" value="tracing_thread" color="#AB47BC" />
         <definedValue name="USB Work Queue" value="usbworkq" color="#2196F3" />
-        <definedValue name="App Thread (unknown)" value="unknown" color="#4CAF50" />
+        <definedValue name="App Thread (unknown)" value="unknown" color="#4CAF50" /> -->
 
         <!-- 優先展示 CPU 0 軌道 -->
         <entry path="CPUs/*">

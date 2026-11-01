@@ -25,7 +25,7 @@
 };
 
 &zephyr_udc0 {
-    status = "okay";
+    status = "disabled";
 
     // my_cdc_uart: my_cdc_uart {
     //     compatible = "zephyr,cdc-acm-uart";

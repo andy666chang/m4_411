@@ -9,15 +9,15 @@
 #include <zephyr/kernel.h>
 #include <zephyr/usb/usb_device.h>
 
-// static const struct device *const usb_uart_dev =
-//     DEVICE_DT_GET(DT_NODELABEL(my_cdc_uart));
+static const struct device *const usb_uart_dev =
+    DEVICE_DT_GET(DT_NODELABEL(my_cdc_uart));
 
 static int cdc_init(void) {
     int ret;
 
-    // if (!device_is_ready(usb_uart_dev)) {
-    //     return -ENODEV;
-    // }
+    if (!device_is_ready(usb_uart_dev)) {
+        return -ENODEV;
+    }
 
     ret = usb_enable(NULL);
     if (ret != 0) {

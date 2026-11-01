@@ -1,0 +1,89 @@
+diff --git a/subsys/tracing/CMakeLists.txt b/subsys/tracing/CMakeLists.txt
+index 98c0939c98..d279f58d41 100644
+--- a/subsys/tracing/CMakeLists.txt
++++ b/subsys/tracing/CMakeLists.txt
+@@ -46,6 +46,10 @@ zephyr_sources_ifdef(
+   tracing_backend_adsp_memory_window.c
+   )
+ 
++zephyr_sources_ifdef(
++  CONFIG_TRACING_BACKEND_RTT
++  tracing_backend_rtt.c
++  )
+ endif()
+ 
+ if(NOT CONFIG_PERCEPIO_TRACERECORDER AND NOT CONFIG_TRACING_CTF
+diff --git a/subsys/tracing/Kconfig b/subsys/tracing/Kconfig
+index 31017e6036..d77dd063e6 100644
+--- a/subsys/tracing/Kconfig
++++ b/subsys/tracing/Kconfig
+@@ -168,6 +168,12 @@ config TRACING_BACKEND_ADSP_MEMORY_WINDOW
+ 	help
+ 	  Use ADSP memory debug memory window to output tracing data
+ 
++config TRACING_BACKEND_RTT
++	bool "RTT backend"
++	depends on USE_SEGGER_RTT
++	help
++	  Use RTT to output tracing data.
++
+ endchoice
+ 
+ config RAM_TRACING_BUFFER_SIZE
+diff --git a/subsys/tracing/tracing_backend_rtt.c b/subsys/tracing/tracing_backend_rtt.c
+new file mode 100644
+index 0000000000..37af3b2724
+--- /dev/null
++++ b/subsys/tracing/tracing_backend_rtt.c
+@@ -0,0 +1,38 @@
++#include <ctype.h>
++#include <zephyr/kernel.h>
++#include <string.h>
++#include <tracing_core.h>
++#include <tracing_buffer.h>
++#include <tracing_backend.h>
++#include <SEGGER_RTT.h>
++
++#define TRACE_RTT_CHANNEL 1
++#define TRACE_RTT_BUFFER_SIZE 8192
++
++static uint8_t rtt_trace_buf[TRACE_RTT_BUFFER_SIZE];
++
++static void tracing_backend_rtt_output(const struct tracing_backend *backend,
++                                      uint8_t *data, uint32_t length)
++{
++    /* 使用指定頻道寫入 RTT */
++    SEGGER_RTT_Write(TRACE_RTT_CHANNEL, data, length);
++}
++
++static void tracing_backend_rtt_init(void)
++{
++    /* 
++     * 配置專用 UP 緩衝區：
++     * SEGGER_RTT_MODE_NO_BLOCK_SKIP: 緩衝區滿時捨棄（避免阻塞即時系統，但可能掉包）
++     * SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL: 緩衝區滿時等待（保證追蹤完整，但會干擾執行序時序）
++     */
++    SEGGER_RTT_ConfigUpBuffer(TRACE_RTT_CHANNEL, "CTF_Trace",
++                              rtt_trace_buf, sizeof(rtt_trace_buf),
++                              SEGGER_RTT_MODE_NO_BLOCK_SKIP);
++}
++
++const struct tracing_backend_api tracing_backend_rtt_api = {
++    .init = tracing_backend_rtt_init,
++    .output = tracing_backend_rtt_output,
++};
++
++TRACING_BACKEND_DEFINE(tracing_backend_rtt, tracing_backend_rtt_api);
+diff --git a/subsys/tracing/tracing_core.c b/subsys/tracing/tracing_core.c
+index 85dae09052..c386ff8848 100644
+--- a/subsys/tracing/tracing_core.c
++++ b/subsys/tracing/tracing_core.c
+@@ -31,6 +31,8 @@
+ #define TRACING_BACKEND_NAME "tracing_backend_ram"
+ #elif defined CONFIG_TRACING_BACKEND_ADSP_MEMORY_WINDOW
+ #define TRACING_BACKEND_NAME "tracing_backend_adsp_memory_window"
++#elif defined CONFIG_TRACING_BACKEND_RTT
++#define TRACING_BACKEND_NAME "tracing_backend_rtt"
+ #else
+ #define TRACING_BACKEND_NAME ""
+ #endif

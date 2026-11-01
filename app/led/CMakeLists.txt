@@ -6,7 +6,7 @@ project(blinky)
 
 target_sources(app PRIVATE 
     src/main.c 
-    src/cdc_uart.c
+    # src/cdc_uart.c
     src/service.c
 )
 
